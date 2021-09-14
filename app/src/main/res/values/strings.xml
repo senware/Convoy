@@ -2,6 +2,7 @@
     <string name="app_name">Convoy</string>
     <string name="username_text">Username</string>
     <string name="password_text">Password</string>
+    <string name="confirmpassword_text">Re-Type Password</string>
     <string name="login_text">Log In</string>
     <string name="register_text">Register</string>
     <string name="welcome_text">Welcome to Convoy!\nPlease log in or register.</string>

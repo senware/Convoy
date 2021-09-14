@@ -10,6 +10,7 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
     FragmentManager manager;
     WelcomeFragment welcomeFragment;
     LoginFragment loginFragment;
+    RegisterFragment registerFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +40,12 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
 
     @Override
     public void gotoRegister() {
+        manager = getSupportFragmentManager();
+        registerFragment = RegisterFragment.newInstance();
 
+        manager.beginTransaction()
+                .replace(R.id.mainContainer, registerFragment, "REGISTER")
+                .addToBackStack(null)
+                .commit();
     }
 }

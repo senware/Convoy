@@ -10,17 +10,17 @@ import android.view.ViewGroup;
 
 /**
  * A simple {@link Fragment} subclass.
- * Use the {@link LoginFragment#newInstance} factory method to
+ * Use the {@link RegisterFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
-public class LoginFragment extends Fragment {
+public class RegisterFragment extends Fragment {
 
-    public LoginFragment() {
+    public RegisterFragment() {
         // Required empty public constructor
     }
 
-    public static LoginFragment newInstance() {
-        LoginFragment fragment = new LoginFragment();
+    public static RegisterFragment newInstance() {
+        RegisterFragment fragment = new RegisterFragment();
         Bundle args = new Bundle();
         fragment.setArguments(args);
         return fragment;
@@ -37,6 +37,6 @@ public class LoginFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_login, container, false);
+        return inflater.inflate(R.layout.fragment_register, container, false);
     }
 }

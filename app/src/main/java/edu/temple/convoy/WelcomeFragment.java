@@ -72,6 +72,10 @@ public class WelcomeFragment extends Fragment {
             parentActivity.gotoLogin();
         });
 
+        registerButton.setOnClickListener(v -> {
+            parentActivity.gotoRegister();
+        });
+
         // Inflate the layout for this fragment
         return layout;
     }

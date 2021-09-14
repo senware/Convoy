@@ -2,10 +2,9 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/loginFragment"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".LoginFragment" >
+    tools:context=".RegisterFragment">
 
     <LinearLayout
         android:layout_width="0dp"
@@ -13,33 +12,34 @@
         android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:orientation="vertical"
+        android:padding="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <TableLayout
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
 
             <TableRow
                 android:layout_width="match_parent"
                 android:layout_height="match_parent">
 
                 <TextView
-                    android:id="@+id/loginUsernameTextView"
+                    android:id="@+id/registerUsernameTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
                     android:text="@string/username_text"
                     android:textSize="18sp"
-                    android:layout_column="0" />
+                    android:layout_column="0"/>
 
                 <EditText
-                    android:id="@+id/usernameEditText"
+                    android:id="@+id/editTextTextPersonName"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_weight="1"
                     android:ems="10"
                     android:inputType="textPersonName"
                     android:layout_column="1" />
@@ -50,31 +50,54 @@
                 android:layout_height="match_parent">
 
                 <TextView
-                    android:id="@+id/loginPasswordTextView"
+                    android:id="@+id/registerPasswordTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="8dp"
+                    android:layout_weight="1"
                     android:text="@string/password_text"
                     android:textSize="18sp"
                     android:layout_column="0" />
 
                 <EditText
-                    android:id="@+id/loginPasswordEditText"
+                    android:id="@+id/registerPasswordEditText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
+                    android:layout_weight="1"
                     android:ems="10"
                     android:inputType="textPassword"
                     android:layout_column="1" />
             </TableRow>
 
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/confirmPasswordTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/confirmpassword_text"
+                    android:textSize="18sp"
+                    android:layout_column="0" />
+
+                <EditText
+                    android:id="@+id/confirmPasswordEditText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:ems="10"
+                    android:inputType="textPassword"
+                    android:layout_column="1" />
+            </TableRow>
         </TableLayout>
 
         <Button
-            android:id="@+id/loginButton"
+            android:id="@+id/registerButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/login_text" />
+            android:text="@string/register_text" />
+
     </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
