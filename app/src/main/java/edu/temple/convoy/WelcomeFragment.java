@@ -1,12 +1,16 @@
 package edu.temple.convoy;
 
+import android.app.Activity;
+import android.content.Context;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -15,10 +19,10 @@ import android.view.ViewGroup;
  */
 public class WelcomeFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private WelcomeInterface parentActivity;
 
-    // TODO: Rename and change types of parameters
+    private Button loginButton;
+    private Button registerButton;
 
     public WelcomeFragment() {
         // Required empty public constructor
@@ -46,9 +50,34 @@ public class WelcomeFragment extends Fragment {
     }
 
     @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        Activity parentActivityTemp = getActivity();
+        if (parentActivityTemp instanceof WelcomeInterface) {
+            parentActivity = (WelcomeInterface) parentActivityTemp;
+        } else {
+            throw new RuntimeException("WelcomeInterface must be implemented in attached activity.");
+        }
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        View layout = inflater.inflate(R.layout.fragment_welcome, container, false);
+
+        loginButton = layout.findViewById(R.id.gotoLoginButton);
+        registerButton = layout.findViewById(R.id.gotoRegisterButton);
+
+        loginButton.setOnClickListener(v -> {
+            parentActivity.gotoLogin();
+        });
+
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_welcome, container, false);
+        return layout;
+    }
+
+    interface WelcomeInterface {
+        public void gotoLogin();
+        public void gotoRegister();
     }
 }

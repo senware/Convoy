@@ -1,26 +1,44 @@
 package edu.temple.convoy;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.FragmentManager;
 
 import android.os.Bundle;
-import android.widget.FrameLayout;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements WelcomeFragment.WelcomeInterface {
+
+    FragmentManager manager;
+    WelcomeFragment welcomeFragment;
+    LoginFragment loginFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        FrameLayout mainActivityLayout = (FrameLayout) findViewById(R.id.mainContainer);
 
-        FragmentManager manager = getSupportFragmentManager();
+        manager = getSupportFragmentManager();
 
-        WelcomeFragment welcomeFragment = WelcomeFragment.newInstance();
+        welcomeFragment = WelcomeFragment.newInstance();
 
         manager.beginTransaction()
-                .add(R.id.mainContainer, welcomeFragment, null)
+                .add(R.id.mainContainer, welcomeFragment, "WELCOME")
                 .commit();
+    }
+
+    @Override
+    public void gotoLogin() {
+        manager = getSupportFragmentManager();
+        loginFragment = LoginFragment.newInstance();
+
+        manager.beginTransaction()
+                .replace(R.id.mainContainer, loginFragment, "LOGIN")
+                .addToBackStack(null)
+                .commit();
+
+    }
+
+    @Override
+    public void gotoRegister() {
+
     }
 }
