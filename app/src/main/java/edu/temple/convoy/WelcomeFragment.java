@@ -28,13 +28,6 @@ public class WelcomeFragment extends Fragment {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @return A new instance of fragment welcomeFragment.
-     */
-    // TODO: Rename and change types and number of parameters
     public static WelcomeFragment newInstance() {
         WelcomeFragment fragment = new WelcomeFragment();
         Bundle args = new Bundle();
@@ -65,15 +58,15 @@ public class WelcomeFragment extends Fragment {
                              Bundle savedInstanceState) {
         View layout = inflater.inflate(R.layout.fragment_welcome, container, false);
 
-        loginButton = layout.findViewById(R.id.gotoLoginButton);
-        registerButton = layout.findViewById(R.id.gotoRegisterButton);
+        loginButton = layout.findViewById(R.id.welcomeLoginButton);
+        registerButton = layout.findViewById(R.id.welcomeRegisterButton);
 
         loginButton.setOnClickListener(v -> {
-            parentActivity.gotoLogin();
+            parentActivity.welcomeLogin();
         });
 
         registerButton.setOnClickListener(v -> {
-            parentActivity.gotoRegister();
+            parentActivity.welcomeRegister();
         });
 
         // Inflate the layout for this fragment
@@ -81,7 +74,7 @@ public class WelcomeFragment extends Fragment {
     }
 
     interface WelcomeInterface {
-        public void gotoLogin();
-        public void gotoRegister();
+        public void welcomeLogin();
+        public void welcomeRegister();
     }
 }

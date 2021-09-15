@@ -7,6 +7,7 @@
     tools:context=".RegisterFragment">
 
     <LinearLayout
+        android:id="@+id/linearLayout"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -27,22 +28,60 @@
                 android:layout_height="match_parent">
 
                 <TextView
+                    android:id="@+id/firstnameTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/firstname_text"
+                    android:textSize="18sp" />
+
+                <EditText
+                    android:id="@+id/firstnameEditText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ems="10"
+                    android:inputType="textPersonName" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:id="@+id/lastnameTextView"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lastname_text"
+                    android:textSize="18sp" />
+
+                <EditText
+                    android:id="@+id/lastnameEditText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ems="10"
+                    android:inputType="textPersonName" />
+            </TableRow>
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <TextView
                     android:id="@+id/registerUsernameTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_column="0"
                     android:layout_weight="1"
                     android:text="@string/username_text"
-                    android:textSize="18sp"
-                    android:layout_column="0"/>
+                    android:textSize="18sp" />
 
                 <EditText
-                    android:id="@+id/editTextTextPersonName"
+                    android:id="@+id/registerUsernameEditText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_column="1"
                     android:layout_weight="1"
                     android:ems="10"
-                    android:inputType="textPersonName"
-                    android:layout_column="1" />
+                    android:inputType="textPersonName" />
             </TableRow>
 
             <TableRow
@@ -53,19 +92,19 @@
                     android:id="@+id/registerPasswordTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_column="0"
                     android:layout_weight="1"
                     android:text="@string/password_text"
-                    android:textSize="18sp"
-                    android:layout_column="0" />
+                    android:textSize="18sp" />
 
                 <EditText
                     android:id="@+id/registerPasswordEditText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_column="1"
                     android:layout_weight="1"
                     android:ems="10"
-                    android:inputType="textPassword"
-                    android:layout_column="1" />
+                    android:inputType="textPassword" />
             </TableRow>
 
             <TableRow
@@ -76,19 +115,19 @@
                     android:id="@+id/confirmPasswordTextView"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_column="0"
                     android:layout_weight="1"
-                    android:text="@string/confirmpassword_text"
-                    android:textSize="18sp"
-                    android:layout_column="0" />
+                    android:text="@string/confirm_password_text"
+                    android:textSize="18sp" />
 
                 <EditText
                     android:id="@+id/confirmPasswordEditText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_column="1"
                     android:layout_weight="1"
                     android:ems="10"
-                    android:inputType="textPassword"
-                    android:layout_column="1" />
+                    android:inputType="textPassword" />
             </TableRow>
         </TableLayout>
 
@@ -99,5 +138,25 @@
             android:text="@string/register_text" />
 
     </LinearLayout>
+
+    <TextView
+        android:id="@+id/registerErrorTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="@color/red"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/linearLayout" />
+
+    <TextView
+        android:id="@+id/debugRegisterTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text=""
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

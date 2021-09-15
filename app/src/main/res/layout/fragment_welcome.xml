@@ -20,17 +20,17 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/gotoLoginButton"
+        android:id="@+id/welcomeLoginButton"
         android:layout_width="256dp"
         android:layout_height="42dp"
         android:layout_marginBottom="8dp"
         android:text="@string/login_text"
-        app:layout_constraintBottom_toTopOf="@+id/gotoRegisterButton"
+        app:layout_constraintBottom_toTopOf="@+id/welcomeRegisterButton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <Button
-        android:id="@+id/gotoRegisterButton"
+        android:id="@+id/welcomeRegisterButton"
         android:layout_width="256dp"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
