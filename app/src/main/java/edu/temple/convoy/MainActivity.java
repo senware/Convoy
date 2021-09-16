@@ -78,11 +78,19 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
 
         manager = getSupportFragmentManager();
 
-        welcomeFragment = WelcomeFragment.newInstance();
+        if (savedInstanceState == null) {
+            welcomeFragment = WelcomeFragment.newInstance();
 
-        manager.beginTransaction()
-                .add(R.id.mainContainer, welcomeFragment, "WELCOME")
-                .commit();
+            manager.beginTransaction()
+                    .add(R.id.mainContainer, welcomeFragment, "WELCOME")
+                    .commit();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        manager.popBackStack();
     }
 
     @Override
@@ -244,20 +252,19 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
                     try {
                         JSONObject JSONResponse = new JSONObject(response);
                         status = JSONResponse.getString(STATUS);
-                        if (status.equals(ERROR)) {
-                            Log.d("LOGOUT", "error");
-                        }
                         if (status.equals(SUCCESS)){
-                            Log.d("LOGOUT", "worked");
+                            usernameKept = "";
+                            sessionKey = "";
+                            Log.d("LOGOUT", "Success");
                         } else {
-                            Log.d("LOGOUT", "bigger uh-oh");
+                            Log.d("LOGOUT", "Error");
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 },
                 error -> {
-                    Log.d("LOGOUT", "uh-oh");
+                    Log.d("LOGOUT", "Network Error");
                 }) {
             // send parameters here
             @Override
