@@ -1,9 +1,12 @@
 package edu.temple.convoy;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -43,6 +46,9 @@ import java.util.Map;
 public class MainActivity extends AppCompatActivity implements WelcomeFragment.WelcomeInterface,
         RegisterFragment.RegisterInterface, LoginFragment.LoginInterface {
 
+    final static String EXTRA_USERNAME = "edu.temple.convoy.USERNAME";
+    final static String EXTRA_SESSION_KEY = "edu.temple.convoy.SESSION_KEY";
+
     final String ACCOUNT_URL =" https://kamorris.com/lab/convoy/account.php";
     final String ACTION = "action";
     final String REGISTER = "REGISTER";
@@ -59,12 +65,11 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
     final String ERROR = "ERROR";
 
     RequestQueue reQueue;
-    String sessionKey;
     String status;
     String errorMessage;
 
-    String nameKept;
     String usernameKept;
+    String sessionKey;
 
     FragmentManager manager;
     WelcomeFragment welcomeFragment;
@@ -94,9 +99,14 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
     }
 
     @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString(EXTRA_USERNAME, usernameKept);
+        outState.putString(EXTRA_SESSION_KEY, sessionKey);
+    }
+
+    @Override
     protected void onDestroy() {
-        // THIS IS ONLY TEMPORARY LIKE ALL THINGS IN THIS WORLD
-        logout();
         super.onDestroy();
     }
 
@@ -151,6 +161,7 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
                             String debugMessage = "Username: " + usernameKept +
                                     "\nSession Key: " + sessionKey;
                             debugSuccess.setText(debugMessage);
+                            launchConvoy();
                         } else {
                             errorTextView.setText(JSONResponse.getString(MESSAGE));
                         }
@@ -206,13 +217,12 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
                             status = JSONResponse.getString(STATUS);
                             if (status.equals(SUCCESS)){
                                 errorTextView.setText("");
-                                nameKept = firstname + " " + lastname;
                                 usernameKept = username;
                                 sessionKey = JSONResponse.getString(SESSION_KEY);
                                 TextView debugSuccess = findViewById(R.id.debugRegisterTextView);
-                                String debugMessage = "Name: " + nameKept + "\nUsername: " + usernameKept +
-                                        "\nSession Key: " + sessionKey;
+                                String debugMessage = "Username: " + usernameKept + "\nSession Key: " + sessionKey;
                                 debugSuccess.setText(debugMessage);
+                                launchConvoy();
                             } else {
                                 errorTextView.setText(JSONResponse.getString(MESSAGE));
                             }
@@ -278,5 +288,13 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
         };
         reQueue = Volley.newRequestQueue(this);
         reQueue.add(request);
+    }
+
+    private void launchConvoy() {
+        Intent intent = new Intent(this, MapActivity.class);
+        intent.putExtra(EXTRA_USERNAME, usernameKept);
+        intent.putExtra(EXTRA_SESSION_KEY, sessionKey);
+        startActivity(intent);
+        finish();
     }
 }
