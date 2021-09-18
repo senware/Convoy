@@ -12,4 +12,20 @@
     <string name="network_error">Error: Request failed. Check your internet connection.</string>
     <string name="big_fuck_up">Error: The devs don\'t care.</string>
     <string name="blank_fields">Error: One or more fields left blank.</string>
+    <string name="start_convoy">Start Convoy</string>
+    <string name="end_convoy">End Convoy</string>
+    <string name="join_convoy">Join Convoy</string>
+    <string name="leave_convoy">Leave Convoy</string>
+    <string name="join_convoy_message">Please type a valid Convoy ID</string>
+    <string name="join">Join</string>
+    <string name="cancel">Cancel</string>
+    <string name="start_convoy_message">You have successfully started a convoy</string>
+    <string name="start_convoy_failed">Failed to start a convoy</string>
+    <string name="convoy_id_tag">Convoy ID:\t</string>
+    <string name="start">Start</string>
+    <string name="end_message">Are you sure you would like to end the convoy?</string>
+    <string name="convoy">Convoy</string>
+    <string name="end">End</string>
+    <string name="logout_message">Please end the active convoy before logging out</string>
+    <string name="logout">Log Out</string>
 </resources>

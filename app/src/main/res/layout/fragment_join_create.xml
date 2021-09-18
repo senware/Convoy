@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<com.nambimobile.widgets.efab.ExpandableFabLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".JoinCreateFragment">
+
+    <com.nambimobile.widgets.efab.ExpandableFab
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="32dp"
+        android:layout_marginRight="32dp"
+        android:layout_marginBottom="32dp"
+        app:efab_firstFabOptionMarginPx="100"
+        app:efab_iconAnimationRotationDeg="-180"
+        app:efab_size="normal" />
+
+    <com.nambimobile.widgets.efab.FabOption
+        android:id="@+id/startConvoyButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:label_text="@string/start_convoy" />
+
+    <com.nambimobile.widgets.efab.FabOption
+        android:id="@+id/joinConvoyButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:label_text="@string/join_convoy" />
+
+</com.nambimobile.widgets.efab.ExpandableFabLayout>

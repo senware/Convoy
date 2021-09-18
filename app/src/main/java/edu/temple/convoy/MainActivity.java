@@ -49,24 +49,27 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
     final static String EXTRA_USERNAME = "edu.temple.convoy.USERNAME";
     final static String EXTRA_SESSION_KEY = "edu.temple.convoy.SESSION_KEY";
 
-    final String ACCOUNT_URL =" https://kamorris.com/lab/convoy/account.php";
-    final String ACTION = "action";
-    final String REGISTER = "REGISTER";
-    final String LOGIN = "LOGIN";
-    final String LOGOUT = "LOGOUT";
-    final String FIRSTNAME = "firstname";
-    final String LASTNAME = "lastname";
-    final String USERNAME = "username";
-    final String PASSWORD = "password";
-    final String STATUS = "status";
-    final String SESSION_KEY = "session_key";
-    final String MESSAGE = "message";
-    final String SUCCESS = "SUCCESS";
-    final String ERROR = "ERROR";
+    final static String ACCOUNT_URL ="https://kamorris.com/lab/convoy/account.php";
+    final static String CONVOY_URL = "https://kamorris.com/lab/convoy/convoy.php";
+    final static String ACTION = "action";
+    final static String END = "END";
+    final static String CREATE = "CREATE";
+    final static String REGISTER = "REGISTER";
+    final static String LOGIN = "LOGIN";
+    final static String LOGOUT = "LOGOUT";
+    final static String CONVOY_ID = "convoy_id";
+    final static String FIRSTNAME = "firstname";
+    final static String LASTNAME = "lastname";
+    final static String USERNAME = "username";
+    final static String PASSWORD = "password";
+    final static String STATUS = "status";
+    final static String SESSION_KEY = "session_key";
+    final static String MESSAGE = "message";
+    final static String SUCCESS = "SUCCESS";
+    final static String ERROR = "ERROR";
 
     RequestQueue reQueue;
     String status;
-    String errorMessage;
 
     String usernameKept;
     String sessionKey;
@@ -256,39 +259,6 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
         }
     }
 
-    public void logout() {
-        StringRequest request = new StringRequest(Request.Method.POST, ACCOUNT_URL,
-                response -> {
-                    try {
-                        JSONObject JSONResponse = new JSONObject(response);
-                        status = JSONResponse.getString(STATUS);
-                        if (status.equals(SUCCESS)){
-                            usernameKept = "";
-                            sessionKey = "";
-                            Log.d("LOGOUT", "Success");
-                        } else {
-                            Log.d("LOGOUT", "Error");
-                        }
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                    }
-                },
-                error -> {
-                    Log.d("LOGOUT", "Network Error");
-                }) {
-            // send parameters here
-            @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
-                Map<String, String> params = new HashMap<>();
-                params.put(ACTION, LOGOUT);
-                params.put(USERNAME, usernameKept);
-                params.put(SESSION_KEY, sessionKey);
-                return params;
-            }
-        };
-        reQueue = Volley.newRequestQueue(this);
-        reQueue.add(request);
-    }
 
     private void launchConvoy() {
         Intent intent = new Intent(this, MapActivity.class);
