@@ -28,4 +28,7 @@
     <string name="end">End</string>
     <string name="logout_message">Please end the active convoy before logging out</string>
     <string name="logout">Log Out</string>
+    <string name="notification_title">Convoy</string>
+    <string name="notification_message">Convoy Location Updater</string>
+    <string name="ticker_text">Convoy is using Location Services to keep your map updated.</string>
 </resources>

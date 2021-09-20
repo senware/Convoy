@@ -9,11 +9,18 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentManager;
 
 import android.annotation.SuppressLint;
-import android.content.DialogInterface;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -23,7 +30,6 @@ import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
-import com.google.android.gms.common.server.response.FastJsonResponse;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -32,9 +38,7 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.nambimobile.widgets.efab.ExpandableFab;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -49,19 +53,61 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     static final String EXTRA_CONVOY_ID = "edu.temple.convoy.CONVOY_ID";
     static final String EXTRA_OWNER = "edu.temple.convoy.OWNER";
 
-    String username, sessionKey;
-    SupportMapFragment mapFragment;
+    private SupportMapFragment mapFragment;
     private FusedLocationProviderClient locationProviderClient;
-    boolean locationPermissionGranted;
-    FragmentManager manager;
-    JoinCreateFragment joinCreateFragment;
-    EndFragment endConvoyFragment;
-    ActionBar actionBar;
+    private boolean locationPermissionGranted;
+    protected Location mLocation;
+    protected GoogleMap mMap;
 
-    String convoyID;
-    RequestQueue reQueue;
-    String status;
-    boolean convoyOwner;
+    private FragmentManager manager;
+    private JoinCreateFragment joinCreateFragment;
+    private EndFragment endConvoyFragment;
+
+    private ActionBar actionBar;
+    private RequestQueue reQueue;
+    private String username, sessionKey, convoyID, status;
+    private boolean convoyOwner;
+
+    final Messenger mMessager = new Messenger(new ServiceHandler());
+    private Messenger mService;
+    protected boolean bound;
+
+    private ServiceConnection connection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mService = new Messenger(service);
+            try {
+                Message msg = Message.obtain(null, LocationUpdateService.MSG_REGISTER_CLIENT);
+                msg.replyTo = mMessager;
+                mService.send(msg);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+            bound = true;
+            Log.d("SENWARE", "Service bound?: " + bound);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            deregister();
+            mService = null;
+            bound = false;
+        }
+    };
+
+    class ServiceHandler extends Handler {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            switch (msg.what) {
+                case LocationUpdateService.MSG_UPDATE_AVAILABLE:
+                    mLocation = (Location) msg.obj;
+                    updateMap();
+                    break;
+                default:
+                    super.handleMessage(msg);
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +121,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mapFragment.getMapAsync(this);
 
         actionBar = getSupportActionBar();
-
 
         endConvoyFragment = EndFragment.newInstance();
 
@@ -108,6 +153,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 }
             } else {
                 actionBar.setTitle(getString(R.string.convoy_id_tag) + convoyID);
+                bindService(new Intent(this, LocationUpdateService.class),
+                        connection, Context.BIND_AUTO_CREATE);
                 if (convoyOwner) {
                     if (!(manager.findFragmentById(R.id.mapContainer) instanceof EndFragment))
                     manager
@@ -128,17 +175,21 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         mapDebugTextView.setText(debugText);
     }
 
+    @Override
+    protected void onDestroy() {
+        bound = false;
+        super.onDestroy();
+    }
+
     @SuppressLint("MissingPermission")
     @Override
     public void onMapReady(GoogleMap map) {
+        mMap = map;
         getLocationPermission();
         if (locationPermissionGranted) {
             locationProviderClient.getLastLocation().addOnSuccessListener(this, location -> {
-                LatLng pos = new LatLng(location.getLatitude(), location.getLongitude());
-                map.addMarker(new MarkerOptions()
-                        .position(pos)
-                        .flat(true));
-                map.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+                mLocation = location;
+                updateMap();
             });
         }
     }
@@ -161,13 +212,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         locationPermissionGranted = false;
-        switch (requestCode) {
-            case PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION: {
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+        if (requestCode == PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION &&
+                grantResults.length > 0 &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     locationPermissionGranted = true;
-                }
-            }
         }
     }
 
@@ -229,12 +277,15 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                     .setTitle(R.string.start_convoy)
                                     .setView(convoyIDView);
                             builder.setPositiveButton(R.string.start, (dialog, which) -> {
-                                actionBar.setTitle(concatConvoyID);
-                                manager
-                                        .beginTransaction()
-                                        .replace(R.id.mapContainer, endConvoyFragment, "endConvoyFragment")
-                                        .commit();
+
                             });
+                            actionBar.setTitle(concatConvoyID);
+                            manager
+                                    .beginTransaction()
+                                    .replace(R.id.mapContainer, endConvoyFragment, "endConvoyFragment")
+                                    .commit();
+                            startService(new Intent(this, LocationUpdateService.class));
+                            bindLocationUpdateService();
                             convoyOwner = true;
                             Log.d("SENWARE", "Convoy created, id: " + convoyID);
                             AlertDialog dialog = builder.create();
@@ -311,6 +362,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                     .beginTransaction()
                                     .replace(R.id.mapContainer, joinCreateFragment, "joinCreateFragment")
                                     .commit();
+                            deregister();
+                            unbindService(connection);
                         } else {
                             // TODO idk maybe add another another dialog..???
                             Log.d("SENWARE", "@killConvoy" + JSONResponse.getString(MainActivity.MESSAGE));
@@ -390,6 +443,32 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         };
         reQueue = Volley.newRequestQueue(this);
         reQueue.add(request);
+    }
+
+    protected void updateMap() {
+        LatLng pos = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
+        mMap.clear();
+        mMap.addMarker(new MarkerOptions()
+                .position(pos)
+                .flat(true));
+        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+        Log.d("SENWARE", "Lat: " + mLocation.getLatitude() + "Lon: " + mLocation.getLongitude());
+    }
+
+    private void bindLocationUpdateService() {
+        bindService(new Intent(this, LocationUpdateService.class),
+                connection, Context.BIND_AUTO_CREATE);
+    }
+
+    private void deregister() {
+        if (bound) {
+            try {
+                Message msg = Message.obtain(null, LocationUpdateService.MSG_REMOVE_CLIENT);
+                mService.send(msg);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
 
