@@ -31,4 +31,5 @@
     <string name="notification_title">Convoy</string>
     <string name="notification_message">Convoy Location Updater</string>
     <string name="ticker_text">Convoy is using Location Services to keep your map updated.</string>
+    <string name="join_failed">Failed to join convoy</string>
 </resources>

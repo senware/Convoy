@@ -1,15 +1,14 @@
 package edu.temple.convoy;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.FragmentManager;
-
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.android.volley.AuthFailureError;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentManager;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
@@ -20,26 +19,6 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
-
-/*
- * Send a POST request to: https://kamorris.com/lab/convoy/account.php
- *
- * For user registration:
- *  action: REGISTER
- *  username: a string representing the user's chosen username
- *  firstname: a string representing the user's first name
- *  lastname: a string representing the user's last name
- *  password: an alphanumeric string representing the user's password
- *
- * For user login:
- *  action: LOGIN
- *  username: a string representing the user's chosen username
- *  password: an alphanumeric string representing the user's password
- *
- * Response Format:
- *  On Success: {"status":"SUCCESS", "session_key": "String"}
- *  On Error: {"status":"ERROR", "message": "String"}
- */
 
 public class MainActivity extends AppCompatActivity implements WelcomeFragment.WelcomeInterface,
         RegisterFragment.RegisterInterface, LoginFragment.LoginInterface {
@@ -52,6 +31,7 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
     final static String ACTION = "action";
     final static String END = "END";
     final static String CREATE = "CREATE";
+    final static String JOIN = "JOIN";
     final static String REGISTER = "REGISTER";
     final static String LOGIN = "LOGIN";
     final static String LOGOUT = "LOGOUT";
@@ -64,7 +44,6 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
     final static String SESSION_KEY = "session_key";
     final static String MESSAGE = "message";
     final static String SUCCESS = "SUCCESS";
-    final static String ERROR = "ERROR";
     final static String UPDATE = "UPDATE";
     final static String LATITUDE = "latitude";
     final static String LONGITUDE = "longitude";
@@ -179,7 +158,7 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
                 }) {
             // send parameters here
             @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
+            protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
                 params.put(ACTION, LOGIN);
                 params.put(USERNAME, username);
@@ -241,7 +220,7 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
                     }) {
                 // send parameters here
                 @Override
-                protected Map<String, String> getParams() throws AuthFailureError {
+                protected Map<String, String> getParams() {
                     Map<String, String> params = new HashMap<>();
                     params.put(ACTION, REGISTER);
                     params.put(FIRSTNAME, firstname);

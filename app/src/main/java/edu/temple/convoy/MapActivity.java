@@ -1,14 +1,5 @@
 package edu.temple.convoy;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-import androidx.fragment.app.FragmentManager;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -28,7 +19,15 @@ import android.util.Log;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.android.volley.AuthFailureError;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.FragmentManager;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
@@ -44,6 +43,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.messaging.FirebaseMessaging;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -73,29 +73,30 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     private FragmentManager manager;
     private JoinCreateFragment joinCreateFragment;
     private EndFragment endConvoyFragment;
+    private LeaveFragment leaveConvoyFragment;
 
     private ActionBar actionBar;
     private RequestQueue reQueue;
     private String username, sessionKey, convoyID;
     private boolean convoyOwner;
 
-    final Messenger mMessager = new Messenger(new ServiceHandler());
+    final Messenger mMessenger = new Messenger(new ServiceHandler());
     private Messenger mService;
     protected boolean bound;
 
-    private ServiceConnection connection = new ServiceConnection() {
+    private final ServiceConnection connection = new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             mService = new Messenger(service);
             try {
                 Message msg = Message.obtain(null, LocationUpdateService.MSG_REGISTER_CLIENT);
-                msg.replyTo = mMessager;
+                msg.replyTo = mMessenger;
                 mService.send(msg);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
             bound = true;
-            Log.d("SENWARE", "Service bound?: " + bound);
+            Log.d("SENWARE", "Service bound");
         }
 
         @Override
@@ -113,7 +114,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 case LocationUpdateService.MSG_UPDATE_AVAILABLE:
                     mLocation = (Location) msg.obj;
                     updateMap();
-
+                    // TODO Send update POST
                     break;
                 default:
                     super.handleMessage(msg);
@@ -121,7 +122,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         }
     }
 
-    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             String data = intent.getStringExtra(EXTRA_DATA);
@@ -161,6 +162,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         actionBar = getSupportActionBar();
 
         endConvoyFragment = EndFragment.newInstance();
+        leaveConvoyFragment = LeaveFragment.newInstance();
 
         if (savedInstanceState == null) {
             convoyOwner = false;
@@ -194,11 +196,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 bindService(new Intent(this, LocationUpdateService.class),
                         connection, Context.BIND_AUTO_CREATE);
                 if (convoyOwner) {
-                    if (!(manager.findFragmentById(R.id.mapContainer) instanceof EndFragment))
-                    manager
-                            .beginTransaction()
-                            .add(R.id.mapContainer, endConvoyFragment)
-                            .commit();
+                    if (!(manager.findFragmentById(R.id.mapContainer) instanceof EndFragment)) {
+                        manager
+                                .beginTransaction()
+                                .add(R.id.mapContainer, endConvoyFragment)
+                                .commit();
+                    }
+                } else {
+                    if(!(manager.findFragmentById(R.id.mapContainer) instanceof LeaveFragment)) {
+                        manager.beginTransaction()
+                                .add(R.id.mapContainer, leaveConvoyFragment)
+                                .commit();
+                    }
                 }
             }
         }
@@ -248,13 +257,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        locationPermissionGranted = false;
-        if (requestCode == PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION &&
+        locationPermissionGranted = requestCode == PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION &&
                 grantResults.length > 0 &&
-                grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    locationPermissionGranted = true;
-        }
+                grantResults[0] == PackageManager.PERMISSION_GRANTED;
     }
 
     @Override
@@ -287,12 +292,68 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 .setView(entry);
         builder.setPositiveButton(R.string.join, (dialog, which) -> {
             final String convoyIDToSend = entry.getText().toString();
-            Log.d("SENWARE", convoyIDToSend);
+            Log.d("SENWARE", "Convoy ID to send: " + convoyIDToSend);
             // TODO: Contact API to join convoy
+            StringRequest request = new StringRequest(Request.Method.POST, MainActivity.CONVOY_URL,
+                    response -> {
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            String status = jsonResponse.getString(MainActivity.STATUS);
+                            if(status.equals(MainActivity.SUCCESS)) {
+                                try {
+                                    convoyID = jsonResponse.getString(MainActivity.CONVOY_ID);
+                                    FirebaseMessaging.getInstance().subscribeToTopic(convoyID)
+                                            .addOnCompleteListener(task -> {
+                                                if(task.isSuccessful()) {
+                                                    final String concatConvoyID = getString(R.string.convoy_id_tag) + convoyID;
+                                                    actionBar.setTitle(concatConvoyID);
+                                                    manager
+                                                            .beginTransaction()
+                                                            .replace(R.id.mapContainer, leaveConvoyFragment, "leaveConvoyFragment")
+                                                            .commit();
+                                                    startService(new Intent(this, LocationUpdateService.class));
+                                                    bindLocationUpdateService();
+                                                    convoyOwner = false;
+                                                    Log.d("SENWARE", "Convoy joined, id: " + convoyID);
+                                                } else {
+                                                    notifyFailed(getString(R.string.join_failed), getString(R.string.join_convoy));
+                                                }
+                                            });
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            } else {
+                                notifyFailed(getString(R.string.join_failed), getString(R.string.join_convoy));
+                            }
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    },
+                    error -> notifyFailed(getString(R.string.join_failed), getString(R.string.join_convoy))) {
+                @Override
+                protected Map<String, String> getParams() {
+                    Map<String, String> params = new HashMap<>();
+                    params.put(MainActivity.ACTION, MainActivity.JOIN);
+                    params.put(MainActivity.USERNAME, username);
+                    params.put(MainActivity.SESSION_KEY, sessionKey);
+                    params.put(MainActivity.CONVOY_ID, convoyIDToSend);
+                    return params;
+                }
+            };
+            reQueue = Volley.newRequestQueue(this);
+            reQueue.add(request);
         });
-        builder.setNegativeButton(R.string.cancel, (dialog, which) -> {
-            // do nothing
-        });
+        builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void notifyFailed(String message, String title) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder
+                .setMessage(message)
+                .setTitle(title);
+        builder.setPositiveButton(getString(R.string.cancel), (dialog, which) -> dialog.cancel());
         AlertDialog dialog = builder.create();
         dialog.show();
     }
@@ -304,10 +365,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         StringRequest request = new StringRequest(Request.Method.POST, MainActivity.CONVOY_URL,
                 response -> {
                     try {
-                        JSONObject JSONResponse = new JSONObject(response);
-                        String status = JSONResponse.getString(MainActivity.STATUS);
+                        JSONObject jsonResponse = new JSONObject(response);
+                        String status = jsonResponse.getString(MainActivity.STATUS);
                         if (status.equals(MainActivity.SUCCESS)) {
-                            convoyID = JSONResponse.getString(MainActivity.CONVOY_ID);
+                            convoyID = jsonResponse.getString(MainActivity.CONVOY_ID);
                             final String concatConvoyID = getString(R.string.convoy_id_tag) + convoyID;
                             convoyIDView.setText(concatConvoyID);
                             builder
@@ -329,14 +390,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                             AlertDialog dialog = builder.create();
                             dialog.show();
                         } else {
-                                convoyIDView.setText(JSONResponse.getString(MainActivity.MESSAGE));
+                                convoyIDView.setText(jsonResponse.getString(MainActivity.MESSAGE));
                                 builder
                                         .setMessage(R.string.start_convoy_failed)
                                         .setTitle(R.string.start_convoy)
                                         .setView(convoyIDView);
-                                builder.setPositiveButton(R.string.start, (dialog, which) -> {
-                                    // do nothing
-                            });
+                                builder.setPositiveButton(R.string.start, (dialog, which) -> dialog.cancel());
                                 AlertDialog dialog = builder.create();
                                 dialog.show();
                         }
@@ -350,14 +409,12 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                             .setMessage(R.string.start_convoy_failed)
                             .setTitle(R.string.start_convoy)
                             .setView(convoyIDView);
-                    builder.setPositiveButton(R.string.start, (dialog, which) -> {
-                        // do nothing
-                    });
+                    builder.setPositiveButton(R.string.cancel, (dialog, which) -> dialog.cancel());
                     AlertDialog dialog = builder.create();
                     dialog.show();
                 }) {
             @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
+            protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
                 params.put(MainActivity.ACTION, MainActivity.CREATE);
                 params.put(MainActivity.USERNAME, username);
@@ -375,12 +432,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         builder
                 .setMessage(R.string.end_message)
                 .setTitle(R.string.end_convoy);
-        builder.setPositiveButton(R.string.end, (dialog, which) -> {
-            killConvoy();
-        });
-        builder.setNegativeButton(R.string.cancel, (dialog, which) -> {
-            dialog.cancel();
-        });
+        builder.setPositiveButton(R.string.end, (dialog, which) -> killConvoy());
+        builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
         AlertDialog dialog = builder.create();
         dialog.show();
     }
@@ -389,8 +442,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         StringRequest request = new StringRequest(Request.Method.POST, MainActivity.CONVOY_URL,
                 response -> {
                     try {
-                        JSONObject JSONResponse = new JSONObject(response);
-                        String status = JSONResponse.getString(MainActivity.STATUS);
+                        JSONObject jsonResponse = new JSONObject(response);
+                        String status = jsonResponse.getString(MainActivity.STATUS);
                         if (status.equals(MainActivity.SUCCESS)) {
                             convoyID = null;
                             convoyOwner = false;
@@ -407,7 +460,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                             unbindService(connection);
                         } else {
                             // TODO idk maybe add another another dialog..???
-                            Log.d("SENWARE", "@killConvoy" + JSONResponse.getString(MainActivity.MESSAGE));
+                            Log.d("SENWARE", "@killConvoy" + jsonResponse.getString(MainActivity.MESSAGE));
                             Log.d("SENWARE", "@killConvoy, session key: " + sessionKey);
                         }
                     } catch (JSONException e) {
@@ -419,7 +472,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     Log.d("SENWARE", "Network Error @killConvoy");
                 }) {
             @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
+            protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
                 params.put(MainActivity.ACTION, MainActivity.END);
                 params.put(MainActivity.USERNAME, username);
@@ -438,12 +491,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             builder
                     .setMessage(R.string.logout_message)
                     .setTitle(R.string.end_convoy);
-            builder.setPositiveButton(R.string.end, (dialog, which) -> {
-                killConvoy();
-            });
-            builder.setNegativeButton(R.string.cancel, (dialog, which) -> {
-                dialog.cancel();
-            });
+            builder.setPositiveButton(R.string.end, (dialog, which) -> killConvoy());
+            builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
             AlertDialog dialog = builder.create();
             dialog.show();
         } else {
@@ -455,8 +504,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         StringRequest request = new StringRequest(Request.Method.POST, MainActivity.ACCOUNT_URL,
                 response -> {
                     try {
-                        JSONObject JSONResponse = new JSONObject(response);
-                        String status = JSONResponse.getString(MainActivity.STATUS);
+                        JSONObject jsonResponse = new JSONObject(response);
+                        String status = jsonResponse.getString(MainActivity.STATUS);
                         if (status.equals(MainActivity.SUCCESS)){
                             Log.d("SENWARE", "Logout Success");
                             Intent intent = new Intent(this, MainActivity.class);
@@ -469,12 +518,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         e.printStackTrace();
                     }
                 },
-                error -> {
-                    Log.d("SENWARE", "Logout Network Error");
-                }) {
+                error -> Log.d("SENWARE", "Logout Network Error")) {
             // send parameters here
             @Override
-            protected Map<String, String> getParams() throws AuthFailureError {
+            protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
                 params.put(MainActivity.ACTION, MainActivity.LOGOUT);
                 params.put(MainActivity.USERNAME, username);
@@ -510,7 +557,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 String userLastName = user.getString(MainActivity.LASTNAME);
                 double userLat = user.getDouble(MainActivity.LATITUDE);
                 double userLon = user.getDouble(MainActivity.LONGITUDE);
-                if (userUsername != username) {
+                if (!userUsername.equals(username)) {
                     Marker marker;
                     if(userMarkers.containsKey(userUsername)) {
                         userMarkers.get(userUsername).remove();
