@@ -7,11 +7,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentManager;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -36,10 +39,13 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -53,11 +59,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     static final String EXTRA_CONVOY_ID = "edu.temple.convoy.CONVOY_ID";
     static final String EXTRA_OWNER = "edu.temple.convoy.OWNER";
 
+    final static String INTENT_UPDATE = "edu.temple.convoy.UPDATE";
+    final static String EXTRA_DATA = "edu.temple.convoy.DATA";
+
     private SupportMapFragment mapFragment;
     private FusedLocationProviderClient locationProviderClient;
     private boolean locationPermissionGranted;
     protected Location mLocation;
     protected GoogleMap mMap;
+    private Marker you;
+    private Map<String, Marker> userMarkers;
 
     private FragmentManager manager;
     private JoinCreateFragment joinCreateFragment;
@@ -65,7 +76,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     private ActionBar actionBar;
     private RequestQueue reQueue;
-    private String username, sessionKey, convoyID, status;
+    private String username, sessionKey, convoyID;
     private boolean convoyOwner;
 
     final Messenger mMessager = new Messenger(new ServiceHandler());
@@ -102,11 +113,38 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 case LocationUpdateService.MSG_UPDATE_AVAILABLE:
                     mLocation = (Location) msg.obj;
                     updateMap();
+
                     break;
                 default:
                     super.handleMessage(msg);
             }
         }
+    }
+
+    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String data = intent.getStringExtra(EXTRA_DATA);
+            try {
+                populateMap(new JSONArray(data));
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+
+        }
+    };
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        LocalBroadcastManager.getInstance(this).registerReceiver(broadcastReceiver,
+                new IntentFilter(INTENT_UPDATE));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(broadcastReceiver);
     }
 
     @Override
@@ -267,7 +305,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 response -> {
                     try {
                         JSONObject JSONResponse = new JSONObject(response);
-                        status = JSONResponse.getString(MainActivity.STATUS);
+                        String status = JSONResponse.getString(MainActivity.STATUS);
                         if (status.equals(MainActivity.SUCCESS)) {
                             convoyID = JSONResponse.getString(MainActivity.CONVOY_ID);
                             final String concatConvoyID = getString(R.string.convoy_id_tag) + convoyID;
@@ -352,10 +390,13 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 response -> {
                     try {
                         JSONObject JSONResponse = new JSONObject(response);
-                        status = JSONResponse.getString(MainActivity.STATUS);
+                        String status = JSONResponse.getString(MainActivity.STATUS);
                         if (status.equals(MainActivity.SUCCESS)) {
                             convoyID = null;
                             convoyOwner = false;
+                            if(userMarkers != null) {
+                                userMarkers.clear();
+                            }
                             actionBar.setTitle(R.string.convoy);
                             joinCreateFragment = JoinCreateFragment.newInstance();
                             manager
@@ -415,7 +456,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 response -> {
                     try {
                         JSONObject JSONResponse = new JSONObject(response);
-                        status = JSONResponse.getString(MainActivity.STATUS);
+                        String status = JSONResponse.getString(MainActivity.STATUS);
                         if (status.equals(MainActivity.SUCCESS)){
                             Log.d("SENWARE", "Logout Success");
                             Intent intent = new Intent(this, MainActivity.class);
@@ -447,12 +488,50 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     protected void updateMap() {
         LatLng pos = new LatLng(mLocation.getLatitude(), mLocation.getLongitude());
-        mMap.clear();
-        mMap.addMarker(new MarkerOptions()
+        if(you != null) {
+            you.remove();
+        }
+        you = mMap.addMarker(new MarkerOptions()
                 .position(pos)
                 .flat(true));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
         Log.d("SENWARE", "Lat: " + mLocation.getLatitude() + "Lon: " + mLocation.getLongitude());
+    }
+
+    protected void populateMap(JSONArray jsonArray) {
+        if (userMarkers == null) {
+            userMarkers = new HashMap<>();
+        }
+        for (int i = 0; i < jsonArray.length(); i++) {
+            try {
+                JSONObject user = new JSONObject(jsonArray.get(i).toString());
+                String userUsername = user.getString(MainActivity.USERNAME);
+                String userFirstName = user.getString(MainActivity.FIRSTNAME);
+                String userLastName = user.getString(MainActivity.LASTNAME);
+                double userLat = user.getDouble(MainActivity.LATITUDE);
+                double userLon = user.getDouble(MainActivity.LONGITUDE);
+                if (userUsername != username) {
+                    Marker marker;
+                    if(userMarkers.containsKey(userUsername)) {
+                        userMarkers.get(userUsername).remove();
+                        mMap.addMarker(initMarker(userLat, userLon, userFirstName, userLastName));
+                    } else {
+                        marker = mMap.addMarker(initMarker(userLat, userLon, userFirstName, userLastName));
+                        userMarkers.put(userUsername, marker);
+                    }
+                }
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private MarkerOptions initMarker(double pLat, double pLon, String pFirstName, String pLastName) {
+        return new MarkerOptions()
+                .flat(true)
+                .position(new LatLng(pLat, pLon))
+                .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
+                .title(pFirstName + " " + pLastName);
     }
 
     private void bindLocationUpdateService() {

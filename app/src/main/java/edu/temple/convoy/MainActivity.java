@@ -65,9 +65,12 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
     final static String MESSAGE = "message";
     final static String SUCCESS = "SUCCESS";
     final static String ERROR = "ERROR";
+    final static String UPDATE = "UPDATE";
+    final static String LATITUDE = "latitude";
+    final static String LONGITUDE = "longitude";
+    final static String DATA = "data";
 
     RequestQueue reQueue;
-    String status;
 
     String usernameKept;
     String sessionKey;
@@ -153,7 +156,7 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
                 response -> {
                     try {
                         JSONObject JSONResponse = new JSONObject(response);
-                        status = JSONResponse.getString(STATUS);
+                        String status = JSONResponse.getString(STATUS);
                         if (status.equals(SUCCESS)){
                             errorTextView.setText("");
                             usernameKept = username;
@@ -215,7 +218,7 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
                     response -> {
                         try {
                             JSONObject JSONResponse = new JSONObject(response);
-                            status = JSONResponse.getString(STATUS);
+                            String status = JSONResponse.getString(STATUS);
                             if (status.equals(SUCCESS)){
                                 errorTextView.setText("");
                                 usernameKept = username;

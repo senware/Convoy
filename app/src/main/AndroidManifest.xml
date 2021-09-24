@@ -22,7 +22,12 @@
             android:name=".LocationUpdateService"
             android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="location"></service>
+            android:foregroundServiceType="location" />
+        <service android:name=".FirebaseService">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
 
         <activity android:name=".MapActivity" />
         <!--
