@@ -3,6 +3,7 @@ package edu.temple.convoy;
 import android.content.Intent;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.firebase.messaging.FirebaseMessagingService;
@@ -16,6 +17,12 @@ public class FirebaseService extends FirebaseMessagingService {
     private LocalBroadcastManager broadcastManager;
 
     public FirebaseService() {
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        broadcastManager = LocalBroadcastManager.getInstance(this);
     }
 
     @Override
@@ -45,5 +52,10 @@ public class FirebaseService extends FirebaseMessagingService {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onNewToken(@NonNull String s) {
+        super.onNewToken(s);
     }
 }

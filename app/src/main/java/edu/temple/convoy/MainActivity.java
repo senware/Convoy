@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity implements WelcomeFragment.W
     final static String END = "END";
     final static String CREATE = "CREATE";
     final static String JOIN = "JOIN";
+    final static String LEAVE = "LEAVE";
     final static String REGISTER = "REGISTER";
     final static String LOGIN = "LOGIN";
     final static String LOGOUT = "LOGOUT";

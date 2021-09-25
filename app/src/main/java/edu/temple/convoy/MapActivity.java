@@ -52,7 +52,7 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.Map;
 
-public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, JoinCreateFragment.JoinCreateInterface, EndFragment.EndConvoyInterface {
+public class MapActivity extends AppCompatActivity implements OnMapReadyCallback, JoinCreateFragment.JoinCreateInterface, EndFragment.EndConvoyInterface, LeaveFragment.LeaveConvoyInterface {
 
     private static final int PERMISSIONS_REQUEST_ACCESS_FINE_LOCATION = 1;
 
@@ -62,7 +62,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     final static String INTENT_UPDATE = "edu.temple.convoy.UPDATE";
     final static String EXTRA_DATA = "edu.temple.convoy.DATA";
 
-    private SupportMapFragment mapFragment;
     private FusedLocationProviderClient locationProviderClient;
     private boolean locationPermissionGranted;
     protected Location mLocation;
@@ -114,7 +113,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 case LocationUpdateService.MSG_UPDATE_AVAILABLE:
                     mLocation = (Location) msg.obj;
                     updateMap();
-                    // TODO Send update POST
                     break;
                 default:
                     super.handleMessage(msg);
@@ -156,8 +154,10 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         locationProviderClient = LocationServices.getFusedLocationProviderClient(this);
         manager = getSupportFragmentManager();
 
-        mapFragment = (SupportMapFragment) manager.findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        SupportMapFragment mapFragment = (SupportMapFragment) manager.findFragmentById(R.id.map);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(this);
+        }
 
         actionBar = getSupportActionBar();
 
@@ -230,7 +230,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     @SuppressLint("MissingPermission")
     @Override
-    public void onMapReady(GoogleMap map) {
+    public void onMapReady(@androidx.annotation.NonNull GoogleMap map) {
         mMap = map;
         getLocationPermission();
         if (locationPermissionGranted) {
@@ -287,20 +287,18 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         final EditText entry = new EditText(this);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder
-                .setMessage(R.string.join_convoy_message)
+                .setMessage(R.string.join_message)
                 .setTitle(R.string.join_convoy)
                 .setView(entry);
         builder.setPositiveButton(R.string.join, (dialog, which) -> {
             final String convoyIDToSend = entry.getText().toString();
             Log.d("SENWARE", "Convoy ID to send: " + convoyIDToSend);
-            // TODO: Contact API to join convoy
             StringRequest request = new StringRequest(Request.Method.POST, MainActivity.CONVOY_URL,
                     response -> {
                         try {
                             JSONObject jsonResponse = new JSONObject(response);
                             String status = jsonResponse.getString(MainActivity.STATUS);
                             if(status.equals(MainActivity.SUCCESS)) {
-                                try {
                                     convoyID = jsonResponse.getString(MainActivity.CONVOY_ID);
                                     FirebaseMessaging.getInstance().subscribeToTopic(convoyID)
                                             .addOnCompleteListener(task -> {
@@ -319,9 +317,6 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                                     notifyFailed(getString(R.string.join_failed), getString(R.string.join_convoy));
                                                 }
                                             });
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                }
                             } else {
                                 notifyFailed(getString(R.string.join_failed), getString(R.string.join_convoy));
                             }
@@ -369,56 +364,104 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         String status = jsonResponse.getString(MainActivity.STATUS);
                         if (status.equals(MainActivity.SUCCESS)) {
                             convoyID = jsonResponse.getString(MainActivity.CONVOY_ID);
-                            final String concatConvoyID = getString(R.string.convoy_id_tag) + convoyID;
-                            convoyIDView.setText(concatConvoyID);
-                            builder
-                                    .setMessage(R.string.start_convoy_message)
-                                    .setTitle(R.string.start_convoy)
-                                    .setView(convoyIDView);
-                            builder.setPositiveButton(R.string.start, (dialog, which) -> {
+                            FirebaseMessaging.getInstance().subscribeToTopic(convoyID).addOnCompleteListener( task -> {
+                               if (task.isSuccessful()) {
+                                   final String concatConvoyID = getString(R.string.convoy_id_tag) + convoyID;
+                                   convoyIDView.setText(concatConvoyID);
+                                   builder
+                                           .setMessage(R.string.start_convoy_message)
+                                           .setTitle(R.string.start_convoy)
+                                           .setView(convoyIDView);
+                                   builder.setPositiveButton(R.string.start, (dialog, which) -> {
 
+                                   });
+                                   actionBar.setTitle(concatConvoyID);
+                                   manager
+                                           .beginTransaction()
+                                           .replace(R.id.mapContainer, endConvoyFragment, "endConvoyFragment")
+                                           .commit();
+                                   startService(new Intent(this, LocationUpdateService.class));
+                                   bindLocationUpdateService();
+                                   convoyOwner = true;
+                                   Log.d("SENWARE", "Convoy created, id: " + convoyID);
+                                   AlertDialog dialog = builder.create();
+                                   dialog.show();
+                               }
                             });
-                            actionBar.setTitle(concatConvoyID);
-                            manager
-                                    .beginTransaction()
-                                    .replace(R.id.mapContainer, endConvoyFragment, "endConvoyFragment")
-                                    .commit();
-                            startService(new Intent(this, LocationUpdateService.class));
-                            bindLocationUpdateService();
-                            convoyOwner = true;
-                            Log.d("SENWARE", "Convoy created, id: " + convoyID);
-                            AlertDialog dialog = builder.create();
-                            dialog.show();
                         } else {
-                                convoyIDView.setText(jsonResponse.getString(MainActivity.MESSAGE));
-                                builder
-                                        .setMessage(R.string.start_convoy_failed)
-                                        .setTitle(R.string.start_convoy)
-                                        .setView(convoyIDView);
-                                builder.setPositiveButton(R.string.start, (dialog, which) -> dialog.cancel());
-                                AlertDialog dialog = builder.create();
-                                dialog.show();
+                                notifyFailed(getString(R.string.start_convoy_failed), getString(R.string.start_convoy));
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 },
-                error -> {
-                    convoyIDView.setText(R.string.network_error);
-                    builder
-                            .setMessage(R.string.start_convoy_failed)
-                            .setTitle(R.string.start_convoy)
-                            .setView(convoyIDView);
-                    builder.setPositiveButton(R.string.cancel, (dialog, which) -> dialog.cancel());
-                    AlertDialog dialog = builder.create();
-                    dialog.show();
-                }) {
+                error -> notifyFailed(getString(R.string.network_error), getString(R.string.start_convoy))) {
             @Override
             protected Map<String, String> getParams() {
                 Map<String, String> params = new HashMap<>();
                 params.put(MainActivity.ACTION, MainActivity.CREATE);
                 params.put(MainActivity.USERNAME, username);
                 params.put(MainActivity.SESSION_KEY, sessionKey);
+                return params;
+            }
+        };
+        reQueue = Volley.newRequestQueue(this);
+        reQueue.add(request);
+    }
+
+    @Override
+    public void leaveConvoy() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder
+                .setMessage(R.string.leave_message)
+                .setTitle(R.string.leave_convoy);
+        builder.setPositiveButton(R.string.leave, (dialog, which) -> exitConvoy());
+        builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void exitConvoy() {
+        StringRequest request = new StringRequest(Request.Method.POST, MainActivity.CONVOY_URL,
+                response ->  {
+                    try {
+                        JSONObject jsonResponse = new JSONObject(response);
+                        String status = jsonResponse.getString(MainActivity.STATUS);
+                        if (status.equals(MainActivity.SUCCESS)) {
+                            FirebaseMessaging.getInstance().unsubscribeFromTopic(convoyID);
+                            deregister();
+                            unbindService(connection);
+                            convoyID = null;
+                            convoyOwner = false;
+                            if (userMarkers != null) {
+                                userMarkers.clear();
+                            }
+                            actionBar.setTitle(R.string.convoy);
+                            joinCreateFragment = JoinCreateFragment.newInstance();
+                            manager
+                                    .beginTransaction()
+                                    .replace(R.id.mapContainer, joinCreateFragment, "joinCreateFragment")
+                                    .commit();
+                        } else {
+                            notifyFailed(getString(R.string.network_error), getString(R.string.leave_convoy));
+                            Log.d("SENWARE", "@exitConvoy" + jsonResponse.getString(MainActivity.MESSAGE));
+                            Log.d("SENWARE", "@exitConvoy, session key: " + sessionKey);
+                        }
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                    }
+                },
+                error -> {
+                    notifyFailed(getString(R.string.leave_failed), getString(R.string.leave_convoy));
+                    Log.d("SENWARE", "Network Error @exitConvoy");
+                }) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put(MainActivity.ACTION, MainActivity.LEAVE);
+                params.put(MainActivity.USERNAME, username);
+                params.put(MainActivity.SESSION_KEY, sessionKey);
+                params.put(MainActivity.CONVOY_ID, convoyID);
                 return params;
             }
         };
@@ -445,6 +488,9 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                         JSONObject jsonResponse = new JSONObject(response);
                         String status = jsonResponse.getString(MainActivity.STATUS);
                         if (status.equals(MainActivity.SUCCESS)) {
+                            FirebaseMessaging.getInstance().unsubscribeFromTopic(convoyID);
+                            deregister();
+                            unbindService(connection);
                             convoyID = null;
                             convoyOwner = false;
                             if(userMarkers != null) {
@@ -456,10 +502,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                     .beginTransaction()
                                     .replace(R.id.mapContainer, joinCreateFragment, "joinCreateFragment")
                                     .commit();
-                            deregister();
-                            unbindService(connection);
                         } else {
-                            // TODO idk maybe add another another dialog..???
+                            notifyFailed(getString(R.string.network_error), getString(R.string.end_convoy));
                             Log.d("SENWARE", "@killConvoy" + jsonResponse.getString(MainActivity.MESSAGE));
                             Log.d("SENWARE", "@killConvoy, session key: " + sessionKey);
                         }
@@ -468,7 +512,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                     }
                 },
                 error -> {
-                    // TODO idk maybe add another dialog?
+                    notifyFailed(getString(R.string.end_failed), getString(R.string.end_convoy));
                     Log.d("SENWARE", "Network Error @killConvoy");
                 }) {
             @Override
@@ -486,15 +530,26 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
     }
 
     public void logout() {
-        if(convoyOwner) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder
-                    .setMessage(R.string.logout_message)
-                    .setTitle(R.string.end_convoy);
-            builder.setPositiveButton(R.string.end, (dialog, which) -> killConvoy());
-            builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
-            AlertDialog dialog = builder.create();
-            dialog.show();
+        if (convoyID != null) {
+            if (convoyOwner) {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder
+                        .setMessage(R.string.logout_end_convoy)
+                        .setTitle(R.string.end_convoy);
+                builder.setPositiveButton(R.string.end, (dialog, which) -> killConvoy());
+                builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            } else {
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder
+                        .setMessage(R.string.logout_end_convoy)
+                        .setTitle(R.string.end_convoy);
+                builder.setPositiveButton(R.string.end, (dialog, which) -> exitConvoy());
+                builder.setNegativeButton(R.string.cancel, (dialog, which) -> dialog.cancel());
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
         } else {
             logoff();
         }
@@ -542,6 +597,25 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 .position(pos)
                 .flat(true));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+
+        StringRequest request = new StringRequest(Request.Method.POST, MainActivity.CONVOY_URL,
+                response -> Log.d("SENWARE", "Location sent to server"),
+                error -> Log.d("SENWARE", "network error @updateMap")) {
+            @Override
+            protected Map<String, String> getParams() {
+                Map<String, String> params = new HashMap<>();
+                params.put(MainActivity.ACTION, MainActivity.UPDATE);
+                params.put(MainActivity.USERNAME, username);
+                params.put(MainActivity.SESSION_KEY, sessionKey);
+                params.put(MainActivity.CONVOY_ID, convoyID);
+                params.put(MainActivity.LATITUDE, Double.toString(pos.latitude));
+                params.put(MainActivity.LONGITUDE, Double.toString(pos.longitude));
+                return params;
+            }
+        };
+        reQueue = Volley.newRequestQueue(this);
+        reQueue.add(request);
+
         Log.d("SENWARE", "Lat: " + mLocation.getLatitude() + "Lon: " + mLocation.getLongitude());
     }
 
@@ -549,6 +623,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         if (userMarkers == null) {
             userMarkers = new HashMap<>();
         }
+
+        for(String k : userMarkers.keySet()) {
+            Marker m = userMarkers.get(k);
+            if (m != null) {
+                m.remove();
+            }
+        }
+
+        Map<String, Marker> updatedUsers = new HashMap<>();
+
         for (int i = 0; i < jsonArray.length(); i++) {
             try {
                 JSONObject user = new JSONObject(jsonArray.get(i).toString());
@@ -557,20 +641,16 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 String userLastName = user.getString(MainActivity.LASTNAME);
                 double userLat = user.getDouble(MainActivity.LATITUDE);
                 double userLon = user.getDouble(MainActivity.LONGITUDE);
+
                 if (!userUsername.equals(username)) {
-                    Marker marker;
-                    if(userMarkers.containsKey(userUsername)) {
-                        userMarkers.get(userUsername).remove();
-                        mMap.addMarker(initMarker(userLat, userLon, userFirstName, userLastName));
-                    } else {
-                        marker = mMap.addMarker(initMarker(userLat, userLon, userFirstName, userLastName));
-                        userMarkers.put(userUsername, marker);
-                    }
+                    updatedUsers.put(userUsername,
+                            mMap.addMarker(initMarker(userLat, userLon, userFirstName, userLastName)));
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
         }
+        userMarkers = updatedUsers;
     }
 
     private MarkerOptions initMarker(double pLat, double pLon, String pFirstName, String pLastName) {
