@@ -34,12 +34,14 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.CameraUpdate;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -61,6 +63,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
 
     final static String INTENT_UPDATE = "edu.temple.convoy.UPDATE";
     final static String EXTRA_DATA = "edu.temple.convoy.DATA";
+
+    final static private float DEFAULT_ZOOM = 16f;
 
     private FusedLocationProviderClient locationProviderClient;
     private boolean locationPermissionGranted;
@@ -237,6 +241,8 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
             locationProviderClient.getLastLocation().addOnSuccessListener(this, location -> {
                 mLocation = location;
                 updateMap();
+                CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(you.getPosition(), DEFAULT_ZOOM);
+                mMap.moveCamera(cameraUpdate);
             });
         }
     }
@@ -389,7 +395,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                                }
                             });
                         } else {
-                                notifyFailed(getString(R.string.start_convoy_failed), getString(R.string.start_convoy));
+                                notifyFailed(jsonResponse.getString(MainActivity.MESSAGE), getString(R.string.start_convoy));
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -596,7 +602,7 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
         you = mMap.addMarker(new MarkerOptions()
                 .position(pos)
                 .flat(true));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(pos, 15f));
+//        mMap.moveCamera(CameraUpdateFactory.newLatLng(pos));
 
         StringRequest request = new StringRequest(Request.Method.POST, MainActivity.CONVOY_URL,
                 response -> Log.d("SENWARE", "Location sent to server"),
@@ -650,6 +656,24 @@ public class MapActivity extends AppCompatActivity implements OnMapReadyCallback
                 e.printStackTrace();
             }
         }
+
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        builder.include(you.getPosition());
+        for(String k : updatedUsers.keySet()) {
+            builder.include(updatedUsers.get(k).getPosition());
+        }
+
+        CameraUpdate cameraUpdate;
+        if(updatedUsers.size() > 0) {
+            LatLngBounds latLngBounds = builder.build();
+            int width = getResources().getDisplayMetrics().widthPixels;
+            int height = getResources().getDisplayMetrics().heightPixels;
+            int padding = (int) (width * 0.2);
+            cameraUpdate = CameraUpdateFactory.newLatLngBounds(latLngBounds, width, height, padding);
+        } else {
+            cameraUpdate = CameraUpdateFactory.newLatLngZoom(you.getPosition(), DEFAULT_ZOOM);
+        }
+        mMap.moveCamera(cameraUpdate);
         userMarkers = updatedUsers;
     }
 
